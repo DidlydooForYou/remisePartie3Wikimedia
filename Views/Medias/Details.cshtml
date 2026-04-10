@@ -1,0 +1,70 @@
+﻿@model Models.Media
+@{
+    ViewBag.Media = Model;
+    ViewBag.PageTitle = "Détails";
+    string search = Session["Search"] != null ? ((bool)Session["Search"]).ToString() : false.ToString();
+    string SearchString = Session["SearchString"] != null ? (string)Session["SearchString"] : "";
+}
+
+<div id="detailsPanel" class="detailsPanel">
+    <!-- auto refreshed -->
+</div>
+
+@section Scripts {
+    <script>
+        $(() => {
+            newSession(600);
+            mediaDetails_ARP = new AutoRefreshedPanel("detailsPanel", "/Medias/GetMediaDetails", 5, mediaDetailsPostRefresh);
+            sessionStorage.setItem("RestoreScrollPosition", "1");
+        })
+
+        function mediaDetailsPostRefresh() {
+            // todo
+            highlightKeyword();
+        }
+
+        function highlightKeyword() {
+            if ("@search" == "True") {
+                let keyword = "@SearchString";
+                if (keyword.length > 0) {
+                     let titles = document.getElementsByClassName('mediaTitle');
+                     Array.from(titles).forEach(title => {
+                         highlight(keyword, title);
+                     });
+                     let descriptions = document.getElementsByClassName('mediaDescription');
+                     Array.from(descriptions).forEach(description => {
+                         highlight(keyword, description);
+                     })
+                }
+            }
+        }
+
+        $(document).on("click", ".toggleLikeCmd", function () {
+            var icon = $(this);
+            var mediaId = icon.attr("mediaid");
+
+            $.ajax({
+                url: "/Medias/ToggleLike",
+                type: "POST",
+                data: { mediaId: mediaId },
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (!response.success) return;
+
+                    var countSpan = icon.closest(".likePanel").find(".likeCount");
+                    countSpan.text(response.likeCount);
+                    countSpan.attr("title", "Usagers qui ont aimé : \n" + response.users.join("\n"));
+
+                    icon.toggleClass("fa-solid", response.userHasLiked);
+                    icon.toggleClass("fa-regular", !response.userHasLiked);
+
+                    if (window.mediaDetails_ARP) {
+                        mediaDetails_ARP.refreshNow();
+                    }
+                }
+            });
+        });
+    </script>
+}

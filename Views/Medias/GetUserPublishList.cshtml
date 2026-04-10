@@ -1,0 +1,27 @@
+﻿@{
+    var users = ((MediasController)ViewContext.Controller).GetUsersWithMedia();
+    string selectedUser = (string)Session["SelectedUser"];
+}
+
+
+<form method="get" action="/Medias/SetUserFilter">
+    <div id="publishedSelectPanel" class="flexItem">
+        <select name="userId" id="userSelect" class="section roundedBorder form-control" onchange="this.form.submit()">
+            <option value="0" @( (int)Session["SelectedUserId"] == 0 ? "selected" : "" )>
+                Tous les usagers
+            </option>
+
+            @foreach (var user in users)
+            {
+                <option value="@user.UserId"
+                        @( (int)Session["SelectedUserId"] == user.UserId ? "selected" : "" )>
+                    @user.Name (@user.Count)
+                </option>
+            }
+
+        </select>
+    </div>
+</form>
+
+
+

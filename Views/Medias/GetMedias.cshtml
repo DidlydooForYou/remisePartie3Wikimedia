@@ -1,0 +1,82 @@
+﻿@model IEnumerable<Models.Media>
+
+@{
+    if (Model.Any())
+    {
+        var user = Models.User.ConnectedUser;
+        int connectedId = (user != null) ? user.Id : 0;
+        bool isAdmin = (user != null) ? user.IsAdmin : false;
+
+        foreach (var media in Model)
+        {
+            if (media.Owner != null)
+            {
+                bool writeAccess = isAdmin || media.OwnerId == connectedId;
+                bool isLiked = connectedId > 0 && DAL.DB.Likes.ToList().Any(l => l.MediaId == media.Id && l.UserId == connectedId);
+
+                <div class="mediaLayout">
+                    <a href="/Medias/Details/@media.Id" title="Voir les détails de @media.Title" style="text-decoration:none; width:100% !important">
+                        <div class="mediaThumbnail"
+                             style="background-image:url('https://img.youtube.com/vi/@media.YoutubeId/mqdefault.jpg'); padding:6px; display:flex; flex-flow:row-reverse ">
+                            <div class="UserSmallAvatar transparentBackground"
+                                 style="background-image: url('@media.Owner.Avatar'); border:0.1px solid white;"
+                                 title="Ajouté par @media.Owner.Name"></div>
+
+                            @if (writeAccess && media.Shared)
+                            {
+                                <div class="UserSmallAvatar transparentBackground" style="background-image: url('/Content/UI-Images/shared.png'); margin-right:6px;" title="partagée"></div>
+                            }
+                        </div>
+                    </a>
+
+                    <div class="mediaTitle ellipsis" style="margin-left: 4px; margin-right: 4px; font-size: 0.8em; font-weight: bold">
+                        @media.Title
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: auto 120px; align-items:last baseline">
+
+                        <div style="margin-left: 4px; color: gray; font-size: 0.65em; display:flex; flex-direction:column;">
+                            <span>@media.Category</span>
+                            <span>@Helper.When(media.PublishDate)</span>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 5px; align-items: center; padding-right: 4px; color: dodgerblue">
+
+                            <span class="likeCount cmdIconSmall"
+                                  title="Usagers qui ont aimé : @string.Join("\n",
+                                    DAL.DB.Likes.ToList()
+                                        .Where(l => l.MediaId == media.Id)
+                                        .Select(l => { var u = DAL.DB.Users.Get(l.UserId); return u != null ? u.Name : null; })
+                                        .Where(n => n != null)
+                                    )"
+                                  style="color:dodgerblue; cursor:pointer">
+                                @DAL.DB.Likes.ToList().Count(l => l.MediaId == media.Id)
+                            </span>
+
+
+                            <i class="cmdIconSmall fa-thumbs-up toggleLikeCmd @(isLiked ? "fa-solid" : "fa-regular")"
+                               style="color:dodgerblue" mediaid="@media.Id"></i>
+
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    }
+}
+
+
+<script>
+    $(document).off("click", ".toggleLikeCmd");
+    $(document).on("click", ".toggleLikeCmd", function () {
+        var mediaId = $(this).attr("mediaid");
+
+        mediasListAutoRefreshPanel.postCommand(
+            "/Medias/ToggleLike",
+            { mediaId: mediaId }
+        );
+    });
+
+
+
+</script>
